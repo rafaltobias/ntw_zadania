@@ -21,8 +21,7 @@ class ClassModel {
             return false;
         }
     }
-    
-    // Get class by ID
+      // Get class by ID
     public function getClassById($id) {
         $this->db->query('SELECT * FROM classes WHERE id = :id');
         $this->db->bind(':id', $id);
@@ -39,6 +38,22 @@ class ClassModel {
             
             // Get number of students
             $class->student_count = count($class->students);
+            
+            // Get tests assigned to this class
+            $this->db->query('SELECT DISTINCT t.* FROM tests t
+                            JOIN test_assignments ta ON t.id = ta.test_id
+                            WHERE ta.class_id = :class_id
+                            ORDER BY t.created_at DESC');
+            $this->db->bind(':class_id', $id);
+            $class->tests = $this->db->resultSet();
+            
+            // Get question count for each test
+            foreach($class->tests as $test) {
+                $this->db->query('SELECT COUNT(*) as count FROM test_questions WHERE test_id = :test_id');
+                $this->db->bind(':test_id', $test->id);
+                $count = $this->db->single();
+                $test->question_count = $count->count;
+            }
         }
         
         return $class;
@@ -126,15 +141,24 @@ class ClassModel {
         
         return $this->db->execute();
     }
-    
-    // Get classes for a student
+      // Get classes for a student
     public function getClassesByStudent($student_id) {
         $this->db->query('SELECT c.* FROM classes c 
                         JOIN student_class sc ON c.id = sc.class_id 
                         WHERE sc.user_id = :user_id');
         $this->db->bind(':user_id', $student_id);
         
-        return $this->db->resultSet();
+        $classes = $this->db->resultSet();
+        
+        // Get student count for each class
+        foreach($classes as $class) {
+            $this->db->query('SELECT COUNT(*) as count FROM student_class WHERE class_id = :class_id');
+            $this->db->bind(':class_id', $class->id);
+            $count = $this->db->single();
+            $class->student_count = $count->count;
+        }
+        
+        return $classes;
     }
 }
 ?>

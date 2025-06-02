@@ -33,10 +33,10 @@ class StudentsController extends Controller {
         
         // Get classes
         $classes = $this->classModel->getClassesByStudent($student_id);
-        
-        $data = [
+          $data = [
             'title' => 'Student Dashboard',
             'tests' => $tests,
+            'available_tests' => $tests,
             'completed_tests' => $completed_tests,
             'test_count' => count($tests),
             'completed_count' => count($completed_tests),

@@ -127,14 +127,24 @@ class ClassModel {
         return $this->db->execute();
     }
     
-    // Get classes for a student
+    // Get classes for a student    // Get classes for a student
     public function getClassesByStudent($student_id) {
         $this->db->query('SELECT c.* FROM classes c 
                         JOIN student_class sc ON c.id = sc.class_id 
                         WHERE sc.user_id = :user_id');
         $this->db->bind(':user_id', $student_id);
         
-        return $this->db->resultSet();
+        $classes = $this->db->resultSet();
+        
+        // Get student count for each class
+        foreach($classes as $class) {
+            $this->db->query('SELECT COUNT(*) as count FROM student_class WHERE class_id = :class_id');
+            $this->db->bind(':class_id', $class->id);
+            $count = $this->db->single();
+            $class->student_count = $count->count;
+        }
+        
+        return $classes;
     }
 }
 ?>

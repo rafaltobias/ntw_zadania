@@ -186,8 +186,7 @@ class Test {
         
         return $this->db->execute();
     }
-    
-    // Get tests assigned to a student
+      // Get tests assigned to a student
     public function getTestsAssignedToStudent($student_id) {
         $this->db->query('SELECT DISTINCT t.* FROM tests t
                         JOIN test_assignments ta ON t.id = ta.test_id
@@ -202,10 +201,19 @@ class Test {
         $this->db->bind(':user_id2', $student_id);
         $this->db->bind(':user_id3', $student_id);
         
-        return $this->db->resultSet();
+        $tests = $this->db->resultSet();
+        
+        // Get question count for each test
+        foreach($tests as $test) {
+            $this->db->query('SELECT COUNT(*) as count FROM test_questions WHERE test_id = :test_id');
+            $this->db->bind(':test_id', $test->id);
+            $count = $this->db->single();
+            $test->question_count = $count->count;
+        }
+        
+        return $tests;
     }
-    
-    // Get completed tests by a student
+      // Get completed tests by a student
     public function getCompletedTestsByStudent($student_id) {
         $this->db->query('SELECT t.*, tr.score, tr.completed_at FROM tests t 
                         JOIN test_results tr ON t.id = tr.test_id 
@@ -213,7 +221,25 @@ class Test {
                         ORDER BY tr.completed_at DESC');
         $this->db->bind(':user_id', $student_id);
         
-        return $this->db->resultSet();
+        $tests = $this->db->resultSet();
+        
+        // Calculate percentage score for each test
+        foreach($tests as $test) {
+            // Get total number of questions for this test
+            $this->db->query('SELECT COUNT(*) as count FROM test_questions WHERE test_id = :test_id');
+            $this->db->bind(':test_id', $test->id);
+            $count = $this->db->single();
+            $total_questions = $count->count;
+            
+            // Calculate percentage score
+            if($total_questions > 0) {
+                $test->score = round(($test->score / $total_questions) * 100, 1);
+            } else {
+                $test->score = 0;
+            }
+        }
+        
+        return $tests;
     }
     
     // Submit test result
